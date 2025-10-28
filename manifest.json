@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Disco \u2013 AI Promo Finder",
+  "version": "2.3.0",
+  "description": "AI promo finder that detects coupon boxes, fetches, ranks, applies codes, and logs outcomes \u2014 includes adapters for 100 UK retailers. No setup required.",
+  "action": {
+    "default_title": "Disco \u2013 Try codes",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "sw.js"
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "ai.js",
+        "adapters.js",
+        "config.json"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
