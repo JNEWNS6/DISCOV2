@@ -1,30 +1,95 @@
 window.DISCO_AI = (function(){
   const DEFAULT_BACKEND = "https://disco-backend.example.com"; // baked-in
+  const CODE_REGEX = /\b[A-Z0-9][A-Z0-9\-]{4,14}\b/g;
+  const GENERIC_WORDS = new Set(["PROMO","COUPON","VOUCHER","DISCOUNT","CODE","APPLY","SAVE"]);
   async function getSettings() {
     const { discoSettings = {} } = await chrome.storage.local.get("discoSettings");
     // prefer user override, else baked-in default
     return { backendUrl: discoSettings.backendUrl || DEFAULT_BACKEND, apiKey: discoSettings.apiKey || "" };
   }
   function scrapeCodesFromDom() {
-    const texts = [];
+    const found = new Set();
+
+    function addMatches(str) {
+      if (!str) return;
+      const upper = str.toUpperCase();
+      const matches = upper.match(CODE_REGEX);
+      if (!matches) return;
+      for (const raw of matches) {
+        const token = raw.replace(/[^A-Z0-9\-]/g, "").trim();
+        if (token && !GENERIC_WORDS.has(token)) {
+          found.add(token);
+        }
+      }
+    }
+
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
     while (walker.nextNode()) {
-      const t = walker.currentNode.nodeValue.trim();
-      if (t && /\b[A-Z0-9][A-Z0-9\-]{4,14}\b/.test(t)) texts.push(t);
+      const value = walker.currentNode.nodeValue;
+      if (value && value.length <= 180) {
+        addMatches(value);
+      }
     }
+
     const pageText = (document.body.innerText || "").toUpperCase();
-    const nearby = [];
     const hints = ["CODE","COUPON","PROMO","VOUCHER","DISCOUNT"];
     for (const h of hints) {
       let idx = pageText.indexOf(h);
       while (idx >= 0) {
-        nearby.push(...pageText.slice(Math.max(0, idx-120), idx+120).split(/\s+/));
-        idx = pageText.indexOf(h, idx+1);
+        addMatches(pageText.slice(Math.max(0, idx - 160), idx + 160));
+        idx = pageText.indexOf(h, idx + h.length);
       }
     }
-    const tokens = [...texts, ...nearby].map(s => s.toUpperCase()).filter(s => /^[A-Z0-9][A-Z0-9\-]{4,14}$/.test(s));
-    const uniq = Array.from(new Set(tokens));
-    return uniq.filter(x => !["PROMO","COUPON","VOUCHER","DISCOUNT","CODE","APPLY","SAVE"].includes(x));
+
+    const attrSelectors = [
+      "[data-code]",
+      "[data-coupon]",
+      "[data-promo]",
+      "[data-voucher]",
+      "[data-clipboard-text]",
+      "[data-test-id*='code']",
+      "[data-testid*='code']"
+    ].join(",");
+    try {
+      document.querySelectorAll(attrSelectors).forEach(el => {
+        const attrs = Array.from(el.attributes || []);
+        for (const attr of attrs) {
+          if (/coupon|code|promo|voucher|clipboard/i.test(attr.name)) {
+            addMatches(attr.value);
+          }
+        }
+      });
+    } catch {}
+
+    const textSelectors = [
+      "[class*='code']",
+      "[class*='coupon']",
+      "[class*='promo']",
+      "[id*='code']",
+      "[id*='coupon']",
+      "[id*='promo']",
+      "[aria-label*='code']",
+      "[aria-label*='coupon']",
+      "[aria-label*='promo']"
+    ].join(",");
+    try {
+      document.querySelectorAll(textSelectors).forEach(el => {
+        addMatches(el.textContent);
+        addMatches(el.getAttribute("title"));
+        addMatches(el.getAttribute("aria-label"));
+      });
+    } catch {}
+
+    const scriptCandidates = Array.from(document.querySelectorAll("script[type='application/json'],script:not([src])"))
+      .slice(0, 6);
+    for (const script of scriptCandidates) {
+      const text = script.textContent;
+      if (text && text.length <= 4000) {
+        addMatches(text);
+      }
+    }
+
+    return Array.from(found);
   }
   async function rankCodesWithAI(domain, context) {
     const { backendUrl, apiKey } = await getSettings();
