@@ -8,6 +8,11 @@ window.DISCO_AI = (function(){
     return { backendUrl: discoSettings.backendUrl || DEFAULT_BACKEND, apiKey: discoSettings.apiKey || "" };
   }
   function scrapeCodesFromDom() {
+    const body = document.body;
+    if (!body) {
+      return [];
+    }
+
     const found = new Set();
 
     function addMatches(str) {
@@ -23,7 +28,7 @@ window.DISCO_AI = (function(){
       }
     }
 
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
     while (walker.nextNode()) {
       const value = walker.currentNode.nodeValue;
       if (value && value.length <= 180) {
@@ -31,7 +36,7 @@ window.DISCO_AI = (function(){
       }
     }
 
-    const pageText = (document.body.innerText || "").toUpperCase();
+    const pageText = (body.innerText || "").toUpperCase();
     const hints = ["CODE","COUPON","PROMO","VOUCHER","DISCOUNT"];
     for (const h of hints) {
       let idx = pageText.indexOf(h);
