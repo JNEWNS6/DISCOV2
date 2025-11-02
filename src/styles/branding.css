@@ -1,7 +1,7 @@
 :root {
   --brand-primary: #0b5fff;
   --brand-accent: #1ea7fd;
-  --brand-logo-url: url('../icons/logo.png');
+  --brand-logo-url: url('../../icons/icon-128.png');
 }
 
 .popup-header {
