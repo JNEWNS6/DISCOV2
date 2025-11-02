@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "DISCOV2",
-  "version": "1.0.1",
+  "version": "1.0.0",
+  "version": "1.2.2",
   "description": "DISCOV2 web extension",
   "icons": {
     "16": "icons/icon-16.png",
@@ -13,6 +14,7 @@
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png"
       "48": "icons/icon-48.png",
       "128": "icons/icon-128.png"
     },
@@ -34,9 +36,34 @@
         "icons/*",
         "public/assets/*"
       ],
+      "matches": ["<all_urls>"]
       "matches": [
         "<all_urls>"
       ]
     }
   ]
 }
+
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DISCOV2</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="apple-touch-icon" href="icons/icon-128.png">
+    <link rel="stylesheet" href="src/styles/branding.css">
+  </head>
+  <body>
+    <div class="popup-root">
+      <header class="popup-header">
+        <img id="brand-logo" src="icons/logo.png" alt="DISCOV2 logo" width="160" height="48">
+        <h1 class="visually-hidden">DISCOV2</h1>
+      </header>
+
+      <!-- ...existing UI... -->
+    </div>
+
+    <script src="src/popup.js"></script>
+  </body>
+</html>
