@@ -19,6 +19,7 @@ async function load() {
     const li = document.createElement("li");
     li.textContent = c;
     const btn = document.createElement("button");
+    btn.className = "secondary";
     btn.textContent = "Remove";
     btn.onclick = async () => {
       const { discoCodes = [] } = await chrome.storage.local.get("discoCodes");

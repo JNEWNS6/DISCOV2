@@ -109,23 +109,39 @@
     const style = document.createElement("style");
     style.id = "disco-style";
     style.textContent = `
+      :root {
+        --disco-accent: #6c5ce7;
+        --disco-accent-strong: #4e3ecf;
+        --disco-accent-soft: #efeaff;
+        --disco-accent-text: #ffffff;
+        --disco-surface: rgba(255,255,255,0.96);
+        --disco-border: rgba(108,92,231,0.24);
+        --disco-shadow: rgba(78,62,207,0.25);
+      }
       .disco-pill {
         position: fixed; right: 14px; bottom: 14px; z-index: 2147483647;
-        padding: 8px 12px; border: 1px solid rgba(0,0,0,0.08); border-radius: 999px;
-        background: rgba(255,255,255,0.92); color: #111;
-        font: 500 12px/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-        cursor: pointer; backdrop-filter: saturate(140%) blur(6px);
+        padding: 9px 14px; border: 1px solid var(--disco-border); border-radius: 999px;
+        background: linear-gradient(135deg, var(--disco-accent) 0%, #8c7bff 100%);
+        color: var(--disco-accent-text);
+        font: 600 12px/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        box-shadow: 0 12px 24px var(--disco-shadow);
+        cursor: pointer; backdrop-filter: saturate(160%) blur(6px);
+        letter-spacing: 0.01em;
       }
+      .disco-pill-label { display:inline-flex; align-items:center; gap:6px; font-size:12px; }
       .disco-pill-badge {
-        display:inline-block; margin-left:8px; padding:2px 6px; border-radius:999px; font-size:11px;
-        background:#111; color:#fff;
+        display:inline-flex; align-items:center; justify-content:center;
+        margin-left:10px; padding:2px 8px; border-radius:999px; font-size:11px;
+        background: rgba(255,255,255,0.22); color: var(--disco-accent-text);
+        border: 1px solid rgba(255,255,255,0.35);
+        min-width: 20px;
       }
       .disco-modal {
         position: fixed; right: 16px; bottom: 60px; max-width: 360px;
-        background: rgba(255,255,255,0.98); color: #111; border-radius: 12px;
-        border: 1px solid rgba(0,0,0,0.08); padding: 12px; z-index: 2147483647;
-        box-shadow: 0 10px 28px rgba(0,0,0,.18);
+        background: var(--disco-surface); color: #1a133b; border-radius: 16px;
+        border: 1px solid var(--disco-border); padding: 16px; z-index: 2147483647;
+        box-shadow: 0 22px 44px var(--disco-shadow);
+        backdrop-filter: blur(8px);
       }
       .disco-row { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
       .disco-title { font-weight:600; margin-bottom:6px; }
@@ -135,12 +151,23 @@
       .disco-chip.selected { background:#111; color:#fff; border-color:#111; }
       .disco-total { margin-top: 10px; font-size:13px; font-weight:500; }
       @media (prefers-color-scheme: dark) {
-        .disco-pill{ background: rgba(28,28,28,0.9); color: #f2f2f2; border-color: rgba(255,255,255,0.08); }
-        .disco-pill-badge{ background:#f2f2f2; color:#111; }
-        .disco-modal{ background: rgba(28,28,28,0.98); color: #f2f2f2; border-color: rgba(255,255,255,0.08); }
-        .disco-btn{ background:#222; border-color:#333; color:#eee; }
-        .disco-chip{ border-color:#333; }
-        .disco-chip.selected{ background:#f2f2f2; color:#111; }
+        :root {
+          --disco-surface: rgba(22,18,48,0.88);
+          --disco-border: rgba(156,143,255,0.3);
+          --disco-shadow: rgba(17,11,58,0.55);
+        }
+        .disco-pill { color: var(--disco-accent-text); box-shadow: 0 12px 32px rgba(12,8,42,0.55); border-color: rgba(156,143,255,0.45); }
+        .disco-pill-badge { background: rgba(255,255,255,0.25); color: var(--disco-accent-text); }
+        .disco-modal { color:#f0edff; border-color: var(--disco-border); }
+        .disco-title { color:#f0edff; }
+        .disco-btn { background: rgba(108,92,231,0.18); color:#f5f3ff; border-color: rgba(156,143,255,0.4); }
+        .disco-btn:hover { background: rgba(108,92,231,0.28); }
+        .disco-btn.primary { background: linear-gradient(135deg, var(--disco-accent) 0%, #8c7bff 100%); border-color: transparent; }
+        .disco-chip { background: rgba(22,18,48,0.72); color:#e3defc; border-color: rgba(156,143,255,0.4); }
+        .disco-chip:hover { border-color: rgba(192,183,255,0.7); box-shadow: 0 4px 16px rgba(30,20,80,0.6); }
+        .disco-chip.selected { color: var(--disco-accent-text); }
+        .disco-total { color:#f0edff; background: rgba(108,92,231,0.28); }
+        .disco-row small { color: rgba(223,219,255,0.75); }
       }
     `;
     document.documentElement.appendChild(style);
@@ -154,7 +181,7 @@
       pill.onclick = openModalAndPrefill;
       document.documentElement.appendChild(pill);
     }
-    pill.textContent = "Disco codes";
+    pill.innerHTML = '<span class="disco-pill-label">Disco codes</span>';
     const badge = document.createElement("span");
     badge.className = "disco-pill-badge";
     badge.textContent = String(count);
@@ -170,7 +197,7 @@
       <div class="disco-title">Disco – Select codes</div>
       <div class="disco-row">
         <button class="disco-btn" id="disco-apply-selected">Apply selected</button>
-        <button class="disco-btn" id="disco-apply-best">Apply best</button>
+        <button class="disco-btn primary" id="disco-apply-best">Apply best</button>
         <button class="disco-btn" id="disco-close">Close</button>
       </div>
       <div class="disco-list" id="disco-list"></div>
