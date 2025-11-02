@@ -1,4 +1,10 @@
 async function load() {
+  try {
+    const hero = document.getElementById("disco-hero-icon");
+    if (hero && self?.DISCO_ICON_BASE64?.["48"]) {
+      hero.src = `data:image/png;base64,${self.DISCO_ICON_BASE64["48"]}`;
+    }
+  } catch {}
   const { discoSettings = {} } = await chrome.storage.local.get("discoSettings");
   document.getElementById("backend").value = discoSettings.backendUrl || "";
   document.getElementById("key").value = discoSettings.apiKey || "";
