@@ -2,6 +2,55 @@
   const LOG = (...a) => console.log("[Disco]", ...a);
   const AD = (window.DISCO_ADAPTERS || {platforms:{}, retailers:[]});
   const AI = window.DISCO_AI;
+  const SAVINGS_KEY = "discoSavingsTotal";
+  let savingsLoaded = false;
+  let totalSavings = 0;
+
+  async function ensureSavingsLoaded() {
+    if (savingsLoaded) return totalSavings;
+    try {
+      const stored = await chrome.storage.local.get(SAVINGS_KEY);
+      const raw = stored?.[SAVINGS_KEY];
+      const parsed = typeof raw === "number" ? raw : parseFloat(raw);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        totalSavings = parseFloat(parsed.toFixed(2));
+      } else {
+        totalSavings = 0;
+      }
+    } catch {
+      totalSavings = 0;
+    }
+    savingsLoaded = true;
+    return totalSavings;
+  }
+
+  function formatSavings(amount) {
+    const safe = Number.isFinite(amount) && amount > 0 ? amount : 0;
+    return `£${safe.toFixed(2)}`;
+  }
+
+  function updateTotalDisplay() {
+    const el = document.getElementById("disco-total");
+    if (el) {
+      el.textContent = `Total saved with Disco: ${formatSavings(totalSavings)}`;
+    }
+  }
+
+  async function incrementSavings(delta) {
+    if (!(delta > 0)) return totalSavings;
+    await ensureSavingsLoaded();
+    totalSavings = parseFloat((totalSavings + delta).toFixed(2));
+    try {
+      await chrome.storage.local.set({ [SAVINGS_KEY]: totalSavings });
+    } catch {}
+    updateTotalDisplay();
+    return totalSavings;
+  }
+
+  async function getTotalSavings() {
+    await ensureSavingsLoaded();
+    return totalSavings;
+  }
 
   function isCheckoutLike(urlStr = location.href) {
     try {
@@ -84,6 +133,7 @@
       .disco-list { max-height: 180px; overflow:auto; margin:8px 0; }
       .disco-chip { display:inline-flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid #eee; border-radius:999px; margin:4px 4px 0 0; cursor:pointer; }
       .disco-chip.selected { background:#111; color:#fff; border-color:#111; }
+      .disco-total { margin-top: 10px; font-size:13px; font-weight:500; }
       @media (prefers-color-scheme: dark) {
         .disco-pill{ background: rgba(28,28,28,0.9); color: #f2f2f2; border-color: rgba(255,255,255,0.08); }
         .disco-pill-badge{ background:#f2f2f2; color:#111; }
@@ -124,6 +174,7 @@
         <button class="disco-btn" id="disco-close">Close</button>
       </div>
       <div class="disco-list" id="disco-list"></div>
+      <div class="disco-total" id="disco-total">Total saved with Disco: £0.00</div>
       <div class="disco-row"><small id="disco-status"></small></div>
     `;
     document.documentElement.appendChild(modal);
@@ -179,6 +230,9 @@
     // log event via baked backend
     const domain = location.hostname.replace(/^www\\./,"");
     AI.postEvent(domain, { code, success: saved > 0, saved, before_total: before, after_total: after });
+    if (saved > 0) {
+      await incrementSavings(saved);
+    }
     return { code, before, after, saved };
   }
 
@@ -220,6 +274,7 @@
     const codes = await collectCodes(domain);
     renderCodes(codes);
     setStatus(codes.length ? "Tip: click to select codes" : "No codes found.");
+    getTotalSavings().then(updateTotalDisplay);
   }
 
   async function init() {
