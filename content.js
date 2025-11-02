@@ -2,6 +2,55 @@
   const LOG = (...a) => console.log("[Disco]", ...a);
   const AD = (window.DISCO_ADAPTERS || {platforms:{}, retailers:[]});
   const AI = window.DISCO_AI;
+  const SAVINGS_KEY = "discoSavingsTotal";
+  let savingsLoaded = false;
+  let totalSavings = 0;
+
+  async function ensureSavingsLoaded() {
+    if (savingsLoaded) return totalSavings;
+    try {
+      const stored = await chrome.storage.local.get(SAVINGS_KEY);
+      const raw = stored?.[SAVINGS_KEY];
+      const parsed = typeof raw === "number" ? raw : parseFloat(raw);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        totalSavings = parseFloat(parsed.toFixed(2));
+      } else {
+        totalSavings = 0;
+      }
+    } catch {
+      totalSavings = 0;
+    }
+    savingsLoaded = true;
+    return totalSavings;
+  }
+
+  function formatSavings(amount) {
+    const safe = Number.isFinite(amount) && amount > 0 ? amount : 0;
+    return `£${safe.toFixed(2)}`;
+  }
+
+  function updateTotalDisplay() {
+    const el = document.getElementById("disco-total");
+    if (el) {
+      el.textContent = `Total saved with Disco: ${formatSavings(totalSavings)}`;
+    }
+  }
+
+  async function incrementSavings(delta) {
+    if (!(delta > 0)) return totalSavings;
+    await ensureSavingsLoaded();
+    totalSavings = parseFloat((totalSavings + delta).toFixed(2));
+    try {
+      await chrome.storage.local.set({ [SAVINGS_KEY]: totalSavings });
+    } catch {}
+    updateTotalDisplay();
+    return totalSavings;
+  }
+
+  async function getTotalSavings() {
+    await ensureSavingsLoaded();
+    return totalSavings;
+  }
 
   function isCheckoutLike(urlStr = location.href) {
     try {
@@ -60,37 +109,74 @@
     const style = document.createElement("style");
     style.id = "disco-style";
     style.textContent = `
+      :root {
+        --disco-accent: #6c5ce7;
+        --disco-accent-strong: #4e3ecf;
+        --disco-accent-soft: #efeaff;
+        --disco-accent-text: #ffffff;
+        --disco-surface: rgba(255,255,255,0.96);
+        --disco-border: rgba(108,92,231,0.24);
+        --disco-shadow: rgba(78,62,207,0.25);
+      }
       .disco-pill {
         position: fixed; right: 14px; bottom: 14px; z-index: 2147483647;
-        padding: 8px 12px; border: 1px solid rgba(0,0,0,0.08); border-radius: 999px;
-        background: rgba(255,255,255,0.92); color: #111;
-        font: 500 12px/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-        cursor: pointer; backdrop-filter: saturate(140%) blur(6px);
+        padding: 9px 14px; border: 1px solid var(--disco-border); border-radius: 999px;
+        background: linear-gradient(135deg, var(--disco-accent) 0%, #8c7bff 100%);
+        color: var(--disco-accent-text);
+        font: 600 12px/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        box-shadow: 0 12px 24px var(--disco-shadow);
+        cursor: pointer; backdrop-filter: saturate(160%) blur(6px);
+        letter-spacing: 0.01em;
       }
+      .disco-pill-label { display:inline-flex; align-items:center; gap:6px; font-size:12px; }
       .disco-pill-badge {
-        display:inline-block; margin-left:8px; padding:2px 6px; border-radius:999px; font-size:11px;
-        background:#111; color:#fff;
+        display:inline-flex; align-items:center; justify-content:center;
+        margin-left:10px; padding:2px 8px; border-radius:999px; font-size:11px;
+        background: rgba(255,255,255,0.22); color: var(--disco-accent-text);
+        border: 1px solid rgba(255,255,255,0.35);
+        min-width: 20px;
       }
       .disco-modal {
         position: fixed; right: 16px; bottom: 60px; max-width: 360px;
-        background: rgba(255,255,255,0.98); color: #111; border-radius: 12px;
-        border: 1px solid rgba(0,0,0,0.08); padding: 12px; z-index: 2147483647;
-        box-shadow: 0 10px 28px rgba(0,0,0,.18);
+        background: var(--disco-surface); color: #1a133b; border-radius: 16px;
+        border: 1px solid var(--disco-border); padding: 16px; z-index: 2147483647;
+        box-shadow: 0 22px 44px var(--disco-shadow);
+        backdrop-filter: blur(8px);
       }
-      .disco-row { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
-      .disco-title { font-weight:600; margin-bottom:6px; }
-      .disco-btn { padding:6px 10px; border-radius:8px; border:1px solid #ddd; background:#fff; cursor:pointer; }
-      .disco-list { max-height: 180px; overflow:auto; margin:8px 0; }
-      .disco-chip { display:inline-flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid #eee; border-radius:999px; margin:4px 4px 0 0; cursor:pointer; }
-      .disco-chip.selected { background:#111; color:#fff; border-color:#111; }
+      .disco-row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+      .disco-title { font-weight:700; margin-bottom:8px; font-size:15px; color:#2b2270; }
+      .disco-btn {
+        padding:7px 12px; border-radius:10px; border:1px solid var(--disco-border);
+        background: var(--disco-accent-soft); color: #3b2ab8; cursor:pointer;
+        font-weight:600; transition: all .18s ease;
+      }
+      .disco-btn:hover { background: rgba(108,92,231,0.12); }
+      .disco-btn.primary { background: var(--disco-accent); color: var(--disco-accent-text); border-color: transparent; }
+      .disco-btn.primary:hover { background: var(--disco-accent-strong); }
+      .disco-list { max-height: 200px; overflow:auto; margin:10px 0 6px; padding-right:4px; }
+      .disco-chip { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(78,62,207,0.2); border-radius:999px; margin:4px 4px 0 0; cursor:pointer; background:#fff; color:#271d69; transition:all .18s ease; }
+      .disco-chip:hover { border-color: rgba(78,62,207,0.45); box-shadow: 0 4px 12px rgba(108,92,231,0.16); }
+      .disco-chip.selected { background: linear-gradient(135deg, var(--disco-accent) 0%, #8c7bff 100%); color: var(--disco-accent-text); border-color: transparent; }
+      .disco-total { margin-top: 12px; font-size:13px; font-weight:600; color:#372a88; background: rgba(108,92,231,0.08); padding:8px 10px; border-radius:10px; }
+      .disco-row small { color:#5a4db9; }
       @media (prefers-color-scheme: dark) {
-        .disco-pill{ background: rgba(28,28,28,0.9); color: #f2f2f2; border-color: rgba(255,255,255,0.08); }
-        .disco-pill-badge{ background:#f2f2f2; color:#111; }
-        .disco-modal{ background: rgba(28,28,28,0.98); color: #f2f2f2; border-color: rgba(255,255,255,0.08); }
-        .disco-btn{ background:#222; border-color:#333; color:#eee; }
-        .disco-chip{ border-color:#333; }
-        .disco-chip.selected{ background:#f2f2f2; color:#111; }
+        :root {
+          --disco-surface: rgba(22,18,48,0.88);
+          --disco-border: rgba(156,143,255,0.3);
+          --disco-shadow: rgba(17,11,58,0.55);
+        }
+        .disco-pill { color: var(--disco-accent-text); box-shadow: 0 12px 32px rgba(12,8,42,0.55); border-color: rgba(156,143,255,0.45); }
+        .disco-pill-badge { background: rgba(255,255,255,0.25); color: var(--disco-accent-text); }
+        .disco-modal { color:#f0edff; border-color: var(--disco-border); }
+        .disco-title { color:#f0edff; }
+        .disco-btn { background: rgba(108,92,231,0.18); color:#f5f3ff; border-color: rgba(156,143,255,0.4); }
+        .disco-btn:hover { background: rgba(108,92,231,0.28); }
+        .disco-btn.primary { background: linear-gradient(135deg, var(--disco-accent) 0%, #8c7bff 100%); border-color: transparent; }
+        .disco-chip { background: rgba(22,18,48,0.72); color:#e3defc; border-color: rgba(156,143,255,0.4); }
+        .disco-chip:hover { border-color: rgba(192,183,255,0.7); box-shadow: 0 4px 16px rgba(30,20,80,0.6); }
+        .disco-chip.selected { color: var(--disco-accent-text); }
+        .disco-total { color:#f0edff; background: rgba(108,92,231,0.28); }
+        .disco-row small { color: rgba(223,219,255,0.75); }
       }
     `;
     document.documentElement.appendChild(style);
@@ -104,7 +190,7 @@
       pill.onclick = openModalAndPrefill;
       document.documentElement.appendChild(pill);
     }
-    pill.textContent = "Disco codes";
+    pill.innerHTML = '<span class="disco-pill-label">Disco codes</span>';
     const badge = document.createElement("span");
     badge.className = "disco-pill-badge";
     badge.textContent = String(count);
@@ -120,10 +206,11 @@
       <div class="disco-title">Disco – Select codes</div>
       <div class="disco-row">
         <button class="disco-btn" id="disco-apply-selected">Apply selected</button>
-        <button class="disco-btn" id="disco-apply-best">Apply best</button>
+        <button class="disco-btn primary" id="disco-apply-best">Apply best</button>
         <button class="disco-btn" id="disco-close">Close</button>
       </div>
       <div class="disco-list" id="disco-list"></div>
+      <div class="disco-total" id="disco-total">Total saved with Disco: £0.00</div>
       <div class="disco-row"><small id="disco-status"></small></div>
     `;
     document.documentElement.appendChild(modal);
@@ -179,6 +266,9 @@
     // log event via baked backend
     const domain = location.hostname.replace(/^www\\./,"");
     AI.postEvent(domain, { code, success: saved > 0, saved, before_total: before, after_total: after });
+    if (saved > 0) {
+      await incrementSavings(saved);
+    }
     return { code, before, after, saved };
   }
 
@@ -220,6 +310,7 @@
     const codes = await collectCodes(domain);
     renderCodes(codes);
     setStatus(codes.length ? "Tip: click to select codes" : "No codes found.");
+    getTotalSavings().then(updateTotalDisplay);
   }
 
   async function init() {
