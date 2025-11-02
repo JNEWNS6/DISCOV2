@@ -1,36 +1,63 @@
 {
   "manifest_version": 3,
-  "name": "Disco \u2013 AI Promo Finder",
-  "version": "2.3.0",
-  "description": "AI promo finder that detects coupon boxes, fetches, ranks, applies codes, and logs outcomes \u2014 includes adapters for 100 UK retailers. No setup required.",
+  "name": "DISCOV2",
+  "version": "1.0.0",
+  "description": "DISCOV2 web extension",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "action": {
-    "default_title": "Disco \u2013 Try codes",
-    "default_popup": "popup.html"
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png"
+    },
+    "default_popup": "public/popup.html"
+  },
+  "background": {
+    "service_worker": "src/background.js"
   },
   "permissions": [
-    "scripting",
-    "activeTab",
-    "storage"
+    "storage",
+    "activeTab"
   ],
-  "background": {
-    "service_worker": "sw.js"
-  },
-  "icons": {
-    "16": "icons/disco-16.svg",
-    "32": "icons/disco-32.svg",
-    "48": "icons/disco-48.svg",
-    "128": "icons/disco-128.svg"
-  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "web_accessible_resources": [
     {
       "resources": [
-        "ai.js",
-        "adapters.js",
-        "config.json"
+        "icons/*",
+        "public/assets/*"
       ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "matches": ["<all_urls>"]
     }
   ]
 }
+
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DISCOV2</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="apple-touch-icon" href="icons/icon-128.png">
+    <link rel="stylesheet" href="src/styles/branding.css">
+  </head>
+  <body>
+    <div class="popup-root">
+      <header class="popup-header">
+        <img id="brand-logo" src="icons/logo.png" alt="DISCOV2 logo" width="160" height="48">
+        <h1 class="visually-hidden">DISCOV2</h1>
+      </header>
+
+      <!-- ...existing UI... -->
+    </div>
+
+    <script src="src/popup.js"></script>
+  </body>
+</html>

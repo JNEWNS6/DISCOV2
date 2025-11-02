@@ -1,0 +1,33 @@
+:root {
+  --brand-primary: #0b5fff;
+  --brand-accent: #1ea7fd;
+  --brand-logo-url: url('../icons/logo.png');
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: transparent;
+}
+
+#brand-logo {
+  display: block;
+  width: 160px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.popup-root {
+  color: #111;
+  background-color: #fff;
+}
+
+.button-primary {
+  background-color: var(--brand-primary);
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
