@@ -1,6 +1,6 @@
-importScripts("icons/discoIcons.js");
+importScripts("../icons/discoIcons.js");
 
-console.log("[Disco] sw.js started", new Date().toISOString());
+console.log("[Disco] background service worker started", new Date().toISOString());
 
 async function discoImageDataFromBase64(b64) {
   const response = await fetch(`data:image/png;base64,${b64}`);
