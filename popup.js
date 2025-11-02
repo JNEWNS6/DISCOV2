@@ -2,6 +2,16 @@ async function load() {
   const { discoSettings = {} } = await chrome.storage.local.get("discoSettings");
   document.getElementById("backend").value = discoSettings.backendUrl || "";
   document.getElementById("key").value = discoSettings.apiKey || "";
+  try {
+    const stored = await chrome.storage.local.get("discoSavingsTotal");
+    const raw = stored?.discoSavingsTotal;
+    const amount = typeof raw === "number" ? raw : parseFloat(raw);
+    const total = Number.isFinite(amount) && amount > 0 ? amount : 0;
+    const totalEl = document.getElementById("total-savings");
+    if (totalEl) {
+      totalEl.textContent = `Total saved with Disco: £${total.toFixed(2)}`;
+    }
+  } catch {}
   const { discoCodes = [] } = await chrome.storage.local.get("discoCodes");
   const list = document.getElementById("list");
   list.innerHTML = "";
@@ -9,6 +19,7 @@ async function load() {
     const li = document.createElement("li");
     li.textContent = c;
     const btn = document.createElement("button");
+    btn.className = "secondary";
     btn.textContent = "Remove";
     btn.onclick = async () => {
       const { discoCodes = [] } = await chrome.storage.local.get("discoCodes");
