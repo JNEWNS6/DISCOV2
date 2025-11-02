@@ -1,4 +1,48 @@
+importScripts("icons/discoIcons.js");
+
 console.log("[Disco] sw.js started", new Date().toISOString());
+
+async function ensureDiscoIcons() {
+  if (typeof self.getDiscoIconImageData !== "function") return;
+  const sizes = [16, 32, 48, 128];
+  try {
+    const entries = await Promise.all(
+      sizes.map(async (size) => {
+        try {
+          const data = await self.getDiscoIconImageData(size);
+          return data ? [size, data] : null;
+        } catch (error) {
+          console.warn(`[Disco] icon generation failed for ${size}`, error);
+          return null;
+        }
+      })
+    );
+    const imageData = entries.reduce((acc, entry) => {
+      if (!entry) return acc;
+      const [size, data] = entry;
+      if (Number.isFinite(size) && data) {
+        acc[size] = data;
+      }
+      return acc;
+    }, {});
+    if (Object.keys(imageData).length) {
+      await chrome.action.setIcon({ imageData });
+    }
+  } catch (error) {
+    console.error("[Disco] ensureDiscoIcons failed", error);
+  }
+}
+
+ensureDiscoIcons();
+chrome.runtime.onInstalled.addListener(() => {
+  ensureDiscoIcons();
+});
+
+if (chrome.runtime.onStartup) {
+  chrome.runtime.onStartup.addListener(() => {
+    ensureDiscoIcons();
+  });
+}
 
 chrome.action.onClicked.addListener(async (tab) => {
   try {

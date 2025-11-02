@@ -5,17 +5,42 @@
   <title>Disco</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <style>
-    body{font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:12px;width:340px;}
-    h1{font-size:16px;margin:0 0 8px;}
+    :root{
+      --disco-accent:#6c5ce7;
+      --disco-accent-strong:#4e3ecf;
+      --disco-accent-soft:#efeaff;
+      --disco-text:#231a60;
+      --disco-border:rgba(108,92,231,0.25);
+    }
+    body{font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:16px;width:340px;background:linear-gradient(160deg,#f7f5ff 0%,#ffffff 60%,#f1eeff 100%);color:var(--disco-text);}
+    h1{font-size:18px;margin:0;color:var(--disco-text);}
+    .hero{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+    .hero img{width:36px;height:36px;border-radius:12px;box-shadow:0 10px 22px rgba(78,62,207,0.22);}
+    .tagline{margin:4px 0 0;font-size:12px;color:rgba(35,26,96,0.7);}
     .row{display:flex;gap:8px;margin-top:8px;}
-    button{padding:8px 10px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer;}
-    .small{color:#666;font-size:12px;margin-top:6px;}
-    details{margin-top:12px;border-top:1px solid #eee;padding-top:8px;}
-    input[type=text],input[type=password]{width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;}
+    button{padding:9px 12px;border-radius:10px;border:1px solid var(--disco-border);background:var(--disco-accent);color:#fff;font-weight:600;cursor:pointer;transition:all .18s ease;}
+    button:hover{background:var(--disco-accent-strong);}
+    button.secondary{background:var(--disco-accent-soft);color:var(--disco-text);}
+    button.secondary:hover{background:#ded5ff;}
+    .small{color:rgba(35,26,96,0.65);font-size:12px;margin-top:6px;}
+    details{margin-top:16px;border-top:1px solid rgba(108,92,231,0.18);padding-top:10px;}
+    details summary{cursor:pointer;font-weight:600;color:var(--disco-text);}
+    input[type=text],input[type=password]{width:100%;padding:8px 10px;border:1px solid var(--disco-border);border-radius:10px;margin-top:6px;background:#fff;}
+    input[type=text]:focus,input[type=password]:focus{outline:2px solid rgba(108,92,231,0.35);}
+    .total{margin:12px 0 6px;font-weight:700;background:rgba(108,92,231,0.08);padding:8px 10px;border-radius:10px;color:var(--disco-text);}
+    ul{list-style:none;padding-left:0;margin:12px 0 0;display:flex;flex-direction:column;gap:6px;}
+    ul li{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid rgba(108,92,231,0.12);border-radius:10px;background:#fff;}
   </style>
 </head>
 <body>
-  <h1>Disco is ready</h1>
+  <header class="hero">
+    <img id="disco-hero-icon" alt="Disco icon"/>
+    <div>
+      <h1>Disco is ready</h1>
+      <p class="tagline">Light up checkout savings.</p>
+    </div>
+  </header>
+  <div id="total-savings" class="total">Total saved with Disco: £0.00</div>
   <p class="small">No setup needed. Disco uses the built-in backend to fetch and rank codes.</p>
 
   <details>
@@ -26,11 +51,11 @@
     <input id="key" type="password" placeholder="sk-..." />
     <div class="row">
       <button id="save">Save</button>
-      <button id="clear">Clear</button>
+      <button id="clear" class="secondary">Clear</button>
     </div>
   </details>
 
-  <h1 style="margin-top:12px;">Your codes</h1>
+  <h1 style="margin-top:16px; font-size:16px;">Your codes</h1>
   <div class="row">
     <input id="code" type="text" placeholder="Add a code (optional)"/>
     <button id="add">Add</button>
@@ -38,6 +63,7 @@
   <ul id="list"></ul>
   <p class="small">Optional personal codes are stored locally on your device.</p>
 
+  <script src="icons/discoIcons.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
