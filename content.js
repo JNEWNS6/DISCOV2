@@ -143,22 +143,13 @@
         box-shadow: 0 22px 44px var(--disco-shadow);
         backdrop-filter: blur(8px);
       }
-      .disco-row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
-      .disco-title { font-weight:700; margin-bottom:8px; font-size:15px; color:#2b2270; }
-      .disco-btn {
-        padding:7px 12px; border-radius:10px; border:1px solid var(--disco-border);
-        background: var(--disco-accent-soft); color: #3b2ab8; cursor:pointer;
-        font-weight:600; transition: all .18s ease;
-      }
-      .disco-btn:hover { background: rgba(108,92,231,0.12); }
-      .disco-btn.primary { background: var(--disco-accent); color: var(--disco-accent-text); border-color: transparent; }
-      .disco-btn.primary:hover { background: var(--disco-accent-strong); }
-      .disco-list { max-height: 200px; overflow:auto; margin:10px 0 6px; padding-right:4px; }
-      .disco-chip { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid rgba(78,62,207,0.2); border-radius:999px; margin:4px 4px 0 0; cursor:pointer; background:#fff; color:#271d69; transition:all .18s ease; }
-      .disco-chip:hover { border-color: rgba(78,62,207,0.45); box-shadow: 0 4px 12px rgba(108,92,231,0.16); }
-      .disco-chip.selected { background: linear-gradient(135deg, var(--disco-accent) 0%, #8c7bff 100%); color: var(--disco-accent-text); border-color: transparent; }
-      .disco-total { margin-top: 12px; font-size:13px; font-weight:600; color:#372a88; background: rgba(108,92,231,0.08); padding:8px 10px; border-radius:10px; }
-      .disco-row small { color:#5a4db9; }
+      .disco-row { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+      .disco-title { font-weight:600; margin-bottom:6px; }
+      .disco-btn { padding:6px 10px; border-radius:8px; border:1px solid #ddd; background:#fff; cursor:pointer; }
+      .disco-list { max-height: 180px; overflow:auto; margin:8px 0; }
+      .disco-chip { display:inline-flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid #eee; border-radius:999px; margin:4px 4px 0 0; cursor:pointer; }
+      .disco-chip.selected { background:#111; color:#fff; border-color:#111; }
+      .disco-total { margin-top: 10px; font-size:13px; font-weight:500; }
       @media (prefers-color-scheme: dark) {
         :root {
           --disco-surface: rgba(22,18,48,0.88);
