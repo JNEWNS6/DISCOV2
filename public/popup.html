@@ -1,23 +1,65 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>DISCOV2</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="../icons/icon-32.png">
-    <link rel="apple-touch-icon" href="../icons/icon-128.png">
-    <link rel="stylesheet" href="../src/styles/branding.css">
-  </head>
-  <body>
-    <div class="popup-root">
-      <header class="popup-header">
-        <img id="brand-logo" src="../icons/icon-128.png" alt="DISCOV2 logo" width="160" height="48">
-        <h1 class="visually-hidden">DISCOV2</h1>
-      </header>
-
-      <!-- ...existing UI... -->
+<head>
+  <meta charset="utf-8"/>
+  <title>Disco</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    :root{
+      --disco-accent:#6c5ce7;
+      --disco-accent-strong:#4e3ecf;
+      --disco-accent-soft:#efeaff;
+      --disco-text:#231a60;
+      --disco-border:rgba(108,92,231,0.25);
+    }
+    body{font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:16px;width:340px;background:linear-gradient(160deg,#f7f5ff 0%,#ffffff 60%,#f1eeff 100%);color:var(--disco-text);}
+    h1{font-size:18px;margin:0;color:var(--disco-text);}
+    .hero{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+    .hero img{width:36px;height:36px;border-radius:12px;box-shadow:0 10px 22px rgba(78,62,207,0.22);}
+    .tagline{margin:4px 0 0;font-size:12px;color:rgba(35,26,96,0.7);}
+    .row{display:flex;gap:8px;margin-top:8px;}
+    button{padding:8px 10px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer;}
+    button.secondary{background:#f7f5ff;border-color:var(--disco-border);color:var(--disco-text);}
+    .small{color:#666;font-size:12px;margin-top:6px;}
+    details{margin-top:12px;border-top:1px solid #eee;padding-top:8px;}
+    input[type=text],input[type=password]{width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;}
+    ul{padding:0;margin:12px 0 0;list-style:none;}
+    li{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);}
+    .total{margin:12px 0 4px;font-weight:600;}
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <img id="disco-hero-icon" src="../icons/icon-48.png" alt="Disco icon"/>
+    <div>
+      <h1>Disco is ready</h1>
+      <p class="tagline">Automatically finding the best promo codes.</p>
     </div>
+  </div>
+  <div id="total-savings" class="total">Total saved with Disco: £0.00</div>
+  <p class="small">No setup needed. Disco uses the built-in backend to fetch and rank codes.</p>
 
-    <script src="../popup.js"></script>
-  </body>
+  <details>
+    <summary>Advanced (override backend)</summary>
+    <label for="backend">Backend URL</label>
+    <input id="backend" type="text" placeholder="https://..." />
+    <label for="key">API Key (optional)</label>
+    <input id="key" type="password" placeholder="sk-..." />
+    <div class="row">
+      <button id="save">Save</button>
+      <button id="clear" class="secondary">Clear</button>
+    </div>
+  </details>
+
+  <h1 style="margin-top:16px; font-size:16px;">Your codes</h1>
+  <div class="row">
+    <input id="code" type="text" placeholder="Add a code (optional)"/>
+    <button id="add">Add</button>
+  </div>
+  <ul id="list"></ul>
+  <p class="small">Optional personal codes are stored locally on your device.</p>
+
+  <script src="../icons/discoIcons.js"></script>
+  <script src="../popup.js"></script>
+</body>
 </html>
