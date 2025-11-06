@@ -329,4 +329,22 @@
 
   chrome.runtime.onMessage.addListener((m) => { if (m?.type === "DISCO_INIT") init(); });
   try { init(); } catch {}
+
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = {
+      __testHooks: {
+        collectCodes,
+        applyBest,
+        tryOne,
+        incrementSavings,
+        setStatus,
+        ensureSavingsLoaded,
+        selectorsForRetailer,
+        currentRetailer,
+        getSelectedCodes,
+        mountPill,
+        openModalAndPrefill,
+      },
+    };
+  }
 })();
