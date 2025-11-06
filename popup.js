@@ -30,7 +30,7 @@ async function load() {
     btn.onclick = async () => {
       const { discoCodes = [] } = await chrome.storage.local.get("discoCodes");
       await chrome.storage.local.set({ discoCodes: discoCodes.filter(x => x !== c) });
-      load();
+      await load();
     };
     li.appendChild(btn);
     list.appendChild(li);
@@ -40,11 +40,11 @@ document.getElementById("save").onclick = async () => {
   const backendUrl = document.getElementById("backend").value.trim();
   const apiKey = document.getElementById("key").value.trim();
   await chrome.storage.local.set({ discoSettings: { backendUrl, apiKey }});
-  load();
+  await load();
 };
 document.getElementById("clear").onclick = async () => {
   await chrome.storage.local.remove("discoSettings");
-  load();
+  await load();
 };
 document.getElementById("add").onclick = async () => {
   const inp = document.getElementById("code");
@@ -54,6 +54,9 @@ document.getElementById("add").onclick = async () => {
   if (!discoCodes.includes(v)) discoCodes.push(v);
   await chrome.storage.local.set({ discoCodes });
   inp.value = "";
-  load();
+  await load();
 };
 load();
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { load };
+}
