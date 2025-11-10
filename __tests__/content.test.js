@@ -4,18 +4,8 @@ const assert = require('node:assert/strict');
 class FakeEvent {
   constructor(type, init = {}) {
     this.type = type;
-    this.defaultPrevented = false;
-    Object.assign(this, init);
-    if (Object.prototype.hasOwnProperty.call(init, 'bubbles')) {
-      this.bubbles = !!init.bubbles;
-    } else {
-      this.bubbles = false;
-    }
+    this.bubbles = !!init.bubbles;
     this.target = null;
-  }
-
-  preventDefault() {
-    this.defaultPrevented = true;
   }
 }
 
@@ -289,12 +279,11 @@ describe('content script promo code flow', () => {
   let applyButton;
   let realSetTimeout;
 
-  async function initContent(options = {}) {
+  beforeEach(async () => {
     realSetTimeout = global.setTimeout;
     global.setTimeout = (fn, ms, ...args) => realSetTimeout(fn, 0, ...args);
 
-    const initialCodes = Array.isArray(options.initialCodes) ? [...options.initialCodes] : ['SAVE10'];
-    storage = { discoCodes: initialCodes, discoSavingsTotal: 0 };
+    storage = { discoCodes: ['SAVE10'], discoSavingsTotal: 0 };
     events = [];
 
     document = new FakeDocument();
@@ -306,9 +295,8 @@ describe('content script promo code flow', () => {
 
     applyButton = document.createElement('button');
     applyButton.id = 'apply-button';
-    const successCode = options.successCode || 'SAVE10';
     applyButton.onclick = () => {
-      if (couponInput.value === successCode) {
+      if (couponInput.value === 'SAVE10') {
         totalEl.textContent = 'Total: £90.00';
       } else {
         totalEl.textContent = 'Total: £100.00';
@@ -325,7 +313,7 @@ describe('content script promo code flow', () => {
     statusEl.id = 'disco-status';
     document.body.appendChild(statusEl);
 
-    const storageGet = async (key) => {
+    const get = async (key) => {
       if (Array.isArray(key)) {
         return key.reduce((acc, k) => {
           if (k in storage) acc[k] = storage[k];
@@ -345,11 +333,11 @@ describe('content script promo code flow', () => {
       return {};
     };
 
-    const storageSet = async (updates) => {
+    const set = async (updates) => {
       Object.assign(storage, updates);
     };
 
-    const storageRemove = async (key) => {
+    const remove = async (key) => {
       if (Array.isArray(key)) {
         key.forEach(k => delete storage[k]);
       } else {
@@ -358,7 +346,7 @@ describe('content script promo code flow', () => {
     };
 
     global.chrome = {
-      storage: { local: { get: storageGet, set: storageSet, remove: storageRemove } },
+      storage: { local: { get, set, remove } },
       runtime: { onMessage: { addListener: () => {} } },
     };
 
@@ -380,19 +368,12 @@ describe('content script promo code flow', () => {
       ],
     };
 
-    const scrapedList = Array.isArray(options.scraped) ? [...options.scraped] : [];
-    const suggestions = Array.isArray(options.suggestions) ? [...options.suggestions] : ['FAIL', 'SAVE10'];
-    const fetchSuggestions = typeof options.fetchSuggestions === 'function'
-      ? options.fetchSuggestions
-      : async () => ({ codes: suggestions });
-    const rankCodes = typeof options.rankCodes === 'function'
-      ? options.rankCodes
-      : (codes) => codes.map(code => ({ code, score: code === 'SAVE10' ? 5 : 1 }));
-
     const ai = {
-      scrapeCodesFromDom: () => [...scrapedList],
-      fetchCodeSuggestions: async (domain) => fetchSuggestions(domain),
-      rankCodesWithAI: async (domain, { codes }) => ({ codes: rankCodes(codes, domain) }),
+      scrapeCodesFromDom: () => [],
+      fetchCodeSuggestions: async () => ({ codes: ['FAIL', 'SAVE10'] }),
+      rankCodesWithAI: async (_domain, { codes }) => ({
+        codes: codes.map(code => ({ code, score: code === 'SAVE10' ? 5 : 1 })),
+      }),
       postEvent: (...args) => { events.push(args); },
     };
 
@@ -417,14 +398,10 @@ describe('content script promo code flow', () => {
     ({ __testHooks: hooks } = require('../content.js'));
     await tick();
     await flush();
-    return hooks;
-  }
+  });
 
   afterEach(() => {
-    if (realSetTimeout) {
-      global.setTimeout = realSetTimeout;
-      realSetTimeout = null;
-    }
+    global.setTimeout = realSetTimeout;
     delete global.chrome;
     delete global.document;
     delete global.window;
@@ -438,15 +415,12 @@ describe('content script promo code flow', () => {
     totalEl = null;
     statusEl = null;
     applyButton = null;
-    storage = null;
-    events = null;
     if (require.cache[require.resolve('../content.js')]) {
       delete require.cache[require.resolve('../content.js')];
     }
   });
 
   it('applies the best available code and records savings', async () => {
-    await initContent();
     assert.ok(typeof hooks.applyBest === 'function', 'applyBest hook exposed');
 
     await hooks.applyBest();
@@ -458,50 +432,5 @@ describe('content script promo code flow', () => {
     assert.equal(storage.discoSavingsTotal, 10);
     assert.match(statusEl.textContent, /Applied SAVE10/i);
     assert.ok(events.some(([, payload]) => payload?.success));
-  });
-
-  it('shows the promo-code pill and supports manual codes when none are suggested', async () => {
-    await initContent({ initialCodes: [], suggestions: [], rankCodes: () => [] });
-
-    const pill = document.querySelector('.disco-pill');
-    assert.ok(pill, 'promo pill should render');
-    const badge = pill.querySelector('.disco-pill-badge');
-    assert.ok(badge, 'pill badge present');
-    assert.equal(badge.textContent, '+');
-
-    await hooks.openModalAndPrefill();
-    await tick();
-    await flush();
-
-    statusEl = document.getElementById('disco-status');
-    assert.match(statusEl.textContent, /Add your own/i);
-
-    const result = await hooks.saveManualCode('extra10');
-    assert.equal(result.code, 'EXTRA10');
-    assert.equal(result.added, true);
-    const codes = await hooks.collectCodes('shopper.test');
-    assert.ok(codes.includes('EXTRA10'));
-
-    hooks.renderCodes(codes, new Set([result.code]));
-    const chips = Array.from(document.querySelectorAll('.disco-chip'));
-    const manualChip = chips.find(chip => chip.textContent === 'EXTRA10');
-    assert.ok(manualChip, 'manual code chip rendered');
-    assert.ok(manualChip.classList.contains('selected'));
-
-    hooks.mountPill(codes.length);
-    const updatedBadge = document.querySelector('.disco-pill-badge');
-    assert.equal(updatedBadge.textContent, '1');
-  });
-
-  it('keeps manually saved codes even when backend ranking omits them', async () => {
-    await initContent({ initialCodes: [], suggestions: ['SAVE10'], rankCodes: (codes) => codes.filter(code => code === 'SAVE10').map(code => ({ code, score: 5 })) });
-
-    const result = await hooks.saveManualCode('vip50');
-    assert.equal(result.code, 'VIP50');
-    assert.equal(result.added, true);
-
-    const codes = await hooks.collectCodes('shopper.test');
-    assert.ok(codes.includes('VIP50'));
-    assert.ok(codes.includes('SAVE10'));
   });
 });

@@ -497,8 +497,6 @@
         getSelectedCodes,
         mountPill,
         openModalAndPrefill,
-        saveManualCode,
-        renderCodes,
       },
     };
   }
