@@ -5,6 +5,7 @@
   const SAVINGS_KEY = "discoSavingsTotal";
   let savingsLoaded = false;
   let totalSavings = 0;
+  let lastPillCount = null;
 
   async function ensureSavingsLoaded() {
     if (savingsLoaded) return totalSavings;
@@ -86,6 +87,28 @@
     return null;
   }
 
+  function normalizeCode(raw) {
+    if (!raw) return "";
+    const upper = String(raw).toUpperCase().trim();
+    return upper.replace(/[^A-Z0-9-]/g, "");
+  }
+
+  async function saveManualCode(raw) {
+    const code = normalizeCode(raw);
+    if (!code) {
+      return { code: "", added: false, codes: [] };
+    }
+    let { discoCodes = [] } = await chrome.storage.local.get("discoCodes");
+    discoCodes = Array.isArray(discoCodes) ? discoCodes.filter(Boolean).map(normalizeCode) : [];
+    const existed = discoCodes.includes(code);
+    const next = discoCodes.filter(existing => existing !== code);
+    next.unshift(code);
+    try {
+      await chrome.storage.local.set({ discoCodes: next });
+    } catch {}
+    return { code, added: !existed, codes: next };
+  }
+
   function setInputValue(el, value) {
     if (!el) return;
     el.focus();
@@ -127,6 +150,18 @@
         box-shadow: 0 12px 24px var(--disco-shadow);
         cursor: pointer; backdrop-filter: saturate(160%) blur(6px);
         letter-spacing: 0.01em;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      }
+      .disco-pill:hover { transform: translateY(-1px); box-shadow: 0 16px 28px var(--disco-shadow); }
+      .disco-pill.disco-pill-empty {
+        background: linear-gradient(135deg, rgba(108,92,231,0.16) 0%, rgba(140,123,255,0.26) 100%);
+        color: var(--disco-accent);
+        border-color: rgba(108,92,231,0.35);
+      }
+      .disco-pill.disco-pill-empty .disco-pill-badge {
+        background: rgba(255,255,255,0.9);
+        color: var(--disco-accent);
+        border-color: rgba(108,92,231,0.4);
       }
       .disco-pill-label { display:inline-flex; align-items:center; gap:6px; font-size:12px; }
       .disco-pill-badge {
@@ -146,6 +181,9 @@
       .disco-row { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
       .disco-title { font-weight:600; margin-bottom:6px; }
       .disco-btn { padding:6px 10px; border-radius:8px; border:1px solid #ddd; background:#fff; cursor:pointer; }
+      .disco-input { flex: 1 1 140px; min-width: 0; padding:6px 8px; border-radius:8px; border:1px solid rgba(0,0,0,0.18); font: 500 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+      .disco-input:focus { outline: 2px solid rgba(108,92,231,0.55); outline-offset: 1px; border-color: rgba(108,92,231,0.55); }
+      .disco-manual-row { width: 100%; margin-top: 6px; }
       .disco-list { max-height: 180px; overflow:auto; margin:8px 0; }
       .disco-chip { display:inline-flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid #eee; border-radius:999px; margin:4px 4px 0 0; cursor:pointer; }
       .disco-chip.selected { background:#111; color:#fff; border-color:#111; }
@@ -157,7 +195,9 @@
           --disco-shadow: rgba(17,11,58,0.55);
         }
         .disco-pill { color: var(--disco-accent-text); box-shadow: 0 12px 32px rgba(12,8,42,0.55); border-color: rgba(156,143,255,0.45); }
+        .disco-pill.disco-pill-empty { background: linear-gradient(135deg, rgba(108,92,231,0.38) 0%, rgba(140,123,255,0.48) 100%); color: var(--disco-accent-text); border-color: rgba(156,143,255,0.55); }
         .disco-pill-badge { background: rgba(255,255,255,0.25); color: var(--disco-accent-text); }
+        .disco-pill.disco-pill-empty .disco-pill-badge { background: rgba(17,11,58,0.55); color: var(--disco-accent-text); border-color: rgba(156,143,255,0.6); }
         .disco-modal { color:#f0edff; border-color: var(--disco-border); }
         .disco-title { color:#f0edff; }
         .disco-btn { background: rgba(108,92,231,0.18); color:#f5f3ff; border-color: rgba(156,143,255,0.4); }
@@ -168,6 +208,8 @@
         .disco-chip.selected { color: var(--disco-accent-text); }
         .disco-total { color:#f0edff; background: rgba(108,92,231,0.28); }
         .disco-row small { color: rgba(223,219,255,0.75); }
+        .disco-input { background: rgba(22,18,48,0.72); color:#f0edff; border-color: rgba(156,143,255,0.5); }
+        .disco-input:focus { outline-color: rgba(192,183,255,0.8); border-color: rgba(192,183,255,0.8); }
       }
     `;
     document.documentElement.appendChild(style);
@@ -178,14 +220,27 @@
     if (!pill) {
       pill = document.createElement("button");
       pill.className = "disco-pill";
+      pill.type = "button";
       pill.onclick = openModalAndPrefill;
       document.documentElement.appendChild(pill);
     }
-    pill.innerHTML = '<span class="disco-pill-label">Disco codes</span>';
+    const safeCount = Number.isFinite(count) && count > 0 ? Math.round(count) : 0;
+    if (lastPillCount === safeCount) return pill;
+    lastPillCount = safeCount;
+    pill.innerHTML = "";
+    pill.classList.toggle("disco-pill-empty", safeCount === 0);
+    const label = document.createElement("span");
+    label.className = "disco-pill-label";
+    label.textContent = safeCount === 0 ? "Add promo code" : "Disco promo codes";
+    pill.appendChild(label);
     const badge = document.createElement("span");
     badge.className = "disco-pill-badge";
-    badge.textContent = String(count);
+    badge.textContent = safeCount === 0 ? "+" : String(safeCount);
     pill.appendChild(badge);
+    pill.title = safeCount === 0
+      ? "Click to add and try your own promo codes"
+      : `Click to choose from ${safeCount} promo codes`;
+    return pill;
   }
 
   function openModal() {
@@ -193,30 +248,114 @@
     if (modal) return modal;
     modal = document.createElement("div");
     modal.className = "disco-modal";
-    modal.innerHTML = `
-      <div class="disco-title">Disco – Select codes</div>
-      <div class="disco-row">
-        <button class="disco-btn" id="disco-apply-selected">Apply selected</button>
-        <button class="disco-btn primary" id="disco-apply-best">Apply best</button>
-        <button class="disco-btn" id="disco-close">Close</button>
-      </div>
-      <div class="disco-list" id="disco-list"></div>
-      <div class="disco-total" id="disco-total">Total saved with Disco: £0.00</div>
-      <div class="disco-row"><small id="disco-status"></small></div>
-    `;
+
+    const title = document.createElement("div");
+    title.className = "disco-title";
+    title.textContent = "Disco – Select codes";
+    modal.appendChild(title);
+
+    const actionRow = document.createElement("div");
+    actionRow.className = "disco-row";
+
+    const applySelectedBtn = document.createElement("button");
+    applySelectedBtn.className = "disco-btn";
+    applySelectedBtn.id = "disco-apply-selected";
+    applySelectedBtn.textContent = "Apply selected";
+    applySelectedBtn.onclick = applySelected;
+    actionRow.appendChild(applySelectedBtn);
+
+    const applyBestBtn = document.createElement("button");
+    applyBestBtn.className = "disco-btn primary";
+    applyBestBtn.id = "disco-apply-best";
+    applyBestBtn.textContent = "Apply best";
+    applyBestBtn.onclick = applyBest;
+    actionRow.appendChild(applyBestBtn);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "disco-btn";
+    closeBtn.id = "disco-close";
+    closeBtn.textContent = "Close";
+    closeBtn.onclick = () => modal.remove();
+    actionRow.appendChild(closeBtn);
+
+    modal.appendChild(actionRow);
+
+    const manualRow = document.createElement("div");
+    manualRow.className = "disco-row disco-manual-row";
+    manualRow.id = "disco-manual-row";
+
+    const manualInput = document.createElement("input");
+    manualInput.id = "disco-manual";
+    manualInput.className = "disco-input";
+    manualInput.type = "text";
+    manualInput.placeholder = "Enter a code manually";
+    manualRow.appendChild(manualInput);
+
+    const manualButton = document.createElement("button");
+    manualButton.className = "disco-btn";
+    manualButton.id = "disco-add-manual";
+    manualButton.textContent = "Save code";
+    manualRow.appendChild(manualButton);
+
+    modal.appendChild(manualRow);
+
+    const list = document.createElement("div");
+    list.className = "disco-list";
+    list.id = "disco-list";
+    modal.appendChild(list);
+
+    const total = document.createElement("div");
+    total.className = "disco-total";
+    total.id = "disco-total";
+    total.textContent = "Total saved with Disco: £0.00";
+    modal.appendChild(total);
+
+    const statusRow = document.createElement("div");
+    statusRow.className = "disco-row";
+    const status = document.createElement("small");
+    status.id = "disco-status";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    statusRow.appendChild(status);
+    modal.appendChild(statusRow);
+
+    const handleManual = async () => {
+      const result = await saveManualCode(manualInput.value);
+      if (!result.code) {
+        setStatus("Enter a code to save.");
+        return;
+      }
+      manualInput.value = "";
+      const domain = location.hostname.replace(/^www\./, "");
+      const codes = await collectCodes(domain);
+      renderCodes(codes, new Set([result.code]));
+      mountPill(codes.length);
+      setStatus(result.added ? `Saved ${result.code}. Select it below.` : `${result.code} is already saved.`);
+    };
+
+    manualButton.onclick = handleManual;
+    manualInput.addEventListener("keydown", (event) => {
+      if (event?.key === "Enter") {
+        event.preventDefault?.();
+        handleManual();
+      }
+    });
+
     document.documentElement.appendChild(modal);
-    modal.querySelector("#disco-close").onclick = () => modal.remove();
-    modal.querySelector("#disco-apply-selected").onclick = applySelected;
-    modal.querySelector("#disco-apply-best").onclick = applyBest;
     return modal;
   }
 
-  function renderCodes(codes) {
+  function renderCodes(codes, selected = new Set()) {
     const list = document.getElementById("disco-list");
+    if (!list) return;
+    const selectedSet = selected instanceof Set ? selected : new Set(selected || []);
     list.innerHTML = "";
     for (const c of codes) {
-    const chip = document.createElement("span");
+      const chip = document.createElement("span");
       chip.className = "disco-chip";
+      if (selectedSet.has(c)) {
+        chip.classList.add("selected");
+      }
       chip.textContent = c;
       chip.onclick = () => chip.classList.toggle("selected");
       list.appendChild(chip);
@@ -233,14 +372,28 @@
   }
 
   async function collectCodes(domain) {
-    const { discoCodes = [] } = await chrome.storage.local.get("discoCodes");
+    const storedRaw = await chrome.storage.local.get("discoCodes");
+    const storedList = Array.isArray(storedRaw?.discoCodes) ? storedRaw.discoCodes : [];
     const scraped = AI.scrapeCodesFromDom();
     const suggestedData = await AI.fetchCodeSuggestions(domain);
-    const suggested = suggestedData?.codes || [];
-    const merged = Array.from(new Set([...discoCodes, ...scraped, ...suggested]));
+    const suggested = Array.isArray(suggestedData?.codes) ? suggestedData.codes : [];
+    const pool = new Set();
+    for (const source of [storedList, scraped, suggested]) {
+      for (const value of source || []) {
+        const code = normalizeCode(value);
+        if (code) pool.add(code);
+      }
+    }
+    const merged = Array.from(pool);
     const rankData = await AI.rankCodesWithAI(domain, { codes: merged });
     if (rankData?.codes?.length) {
-      return rankData.codes.sort((a,b)=> (b.score||0)-(a.score||0)).map(x=>x.code);
+      const ranked = rankData.codes
+        .slice()
+        .sort((a, b) => (b.score || 0) - (a.score || 0))
+        .map(entry => normalizeCode(entry.code))
+        .filter(Boolean);
+      const combined = Array.from(new Set([...ranked, ...merged]));
+      return combined;
     }
     return merged;
   }
@@ -300,7 +453,8 @@
     setStatus("Loading codes…");
     const codes = await collectCodes(domain);
     renderCodes(codes);
-    setStatus(codes.length ? "Tip: click to select codes" : "No codes found.");
+    setStatus(codes.length ? "Tip: click to select codes." : "No codes found yet. Add your own below.");
+    mountPill(codes.length);
     getTotalSavings().then(updateTotalDisplay);
   }
 
@@ -313,15 +467,14 @@
     if (!field) return;
 
     const domain = location.hostname.replace(/^www\\./,"");
+    mountPill(0);
     const codes = await collectCodes(domain);
-    if (codes.length > 0) {
-      mountPill(codes.length);
-    }
+    mountPill(codes.length);
 
     const mo = new MutationObserver(async () => {
       if ($(sels.coupon) && !document.querySelector(".disco-pill")) {
         const codes = await collectCodes(domain);
-        if (codes.length > 0) mountPill(codes.length);
+        mountPill(codes.length);
       }
     });
     mo.observe(document, { childList: true, subtree: true });
